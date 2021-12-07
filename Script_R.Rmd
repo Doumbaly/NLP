@@ -1,0 +1,212 @@
+---
+title: "Memoire"
+author: "SY_DOUMBALY"
+date: "04/12/2020"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Annexes
+
+Nous avons ci_dessous le Code R qui a été generer grace au package Rmarkdown de Rstudio.
+
+```{r , echo=FALSE,eval=FALSE}
+library(readxl)
+library(tidytext)
+library(ggplot2)
+library(reshape2)
+library(wordcloud)
+library(tibble)
+library(tidyverse)
+library(tidytext)
+library(tidyr)
+library(tm)
+library(quanteda)
+library(caret)
+library(e1071)
+library(naivebayes)
+library(tokenizers)
+
+```
+
+
+# Importation du jeu de données :
+
+```{r }
+train=read.csv( file="C:/Users/doums/OneDrive/Bureau/cours Vannes/master_2/Memoire/Corona_NLP_train.csv",header=T,sep=",",stringsAsFactors=FALSE)
+
+```
+
+## Exploration des données : 
+
+
+
+```{r pressure, echo=FALSE, eval=TRUE}
+View(train)
+attach(train)
+dim(train)
+names(train)
+summary(train)
+length(train)
+str(train)
+train.raw<-train[,1:2]
+View(train.raw)
+#regarder si nous avons des valeurs manquantes
+length(which(!complete.cases(train.raw)))
+```
+
+## Conversion de notre variable sentiment
+
+
+```{r,eval=FALSE}
+train.raw$Sentiment <- as.factor(train.raw$Sentiment)
+
+```
+
+
+## Exploration détaillées des données :
+
+
+```{r, eval=FALSE}
+table(train.raw$Sentiment)
+prop.table(table(train.raw$Sentiment))
+
+train.raw$TextLength<-nchar(as.character(train.raw$OriginalTweet))
+summary(train.raw$TextLength)
+```
+
+
+
+## Division de notre base 70 % test
+
+
+```{r, eval=FALSE}
+library(caret)
+
+set.seed(32984)
+indexes<-createDataPartition(train.raw$Sentiment,times=1,p=0.7,list=FALSE)
+
+train<-train.raw[indexes,]
+test<-train.raw[-indexes,]
+```
+
+
+## Verification des proportions 
+
+```{r,eval=FALSE}
+prop.table(table(train$Sentiment))
+prop.table(table(test$Sentiment))
+
+
+library(quanteda)
+help(package = "quanteda")
+```
+
+
+
+# Tokenisation :
+
+```{r }
+train$OriginalTweet[65]
+train$OriginalTweet[134]
+train$OriginalTweet[501]
+```
+
+### Tokenisation de tweet :
+
+?tokens
+
+```{r, eval=FALSE}
+train.tokens<-tokens(as.character(train$OriginalTweet),what="word",
+                     remove_numbers=TRUE,remove_punct=TRUE,
+                     remove_symbols=TRUE,split_hyphens=TRUE)
+
+
+train.tokens[[501]]
+train.tokens[[134]]
+```
+
+- what = "word"est un tokenizer plus intelligent qui préserve les 
+balises de réseaux sociaux, les URL et les adresses e-mail. Les «tags» 
+sont définis comme des hashtags et des noms d'utilisateur valides sur
+ les réseaux sociaux (en utilisant les règles de validité de Twitter) 
+plutôt que de supprimer les caractères de ponctuation #et @, même si remove_punct = TRUE.
+
+
+## Mettre tout le texte en miniscule :
+
+
+```{r, eval=FALSE}
+train.tokens<-tokens_tolower(train.tokens)
+
+train.tokens[[134]]
+```
+
+
+
+## Creation de stopword for english (suppressions des mot qui ont moin de pouvoir prédictive comme your,for,is etc)
+```{r, eval=FALSE}
+?tokens_select
+stopwords()
+
+train.tokens<-tokens_select(train.tokens,stopwords(),
+                            selection="remove")
+
+train.tokens[[134]]
+```
+
+## Stemming :
+```{r, eval=FALSE}
+?tokens_wordstem
+
+train.tokens<-tokens_wordstem(train.tokens,language="english")
+train.tokens[[134]]
+
+```
+
+
+
+#  Bag of words :
+
+```{r, eval= FALSE}
+?dfm
+
+train.tokens.dfm<-dfm(train.tokens,tolower=FALSE)
+#Transformer en matrice
+
+train.tokens.matrice<-train.tokens.dfm
+View(train.tokens.matrice[1:30,1:200])
+dim(train.tokens.matrice)#Notons bien que le nombre de text message ne change pas ce qui change c'est juste le nombre de colonne
+
+#regardons l'effet du stemming
+
+colnames(train.tokens.matrice)[1:90]
+##Setup a the feature data frame with labels.
+
+#configuration
+
+#train.tokens.df<-cbind(sentiment=train.raw$Sentiment,convert(train.tokens.dfm,to=data.frame))
+
+```
+
+```{r, aval= FALSE}
+library(doSNOW)
+start.time <- Sys.time()
+cl <- makeCluster(10, type = "SOCK")
+registerDoSNOW(cl)
+
+#rpart.cv.1 <- train(Sentiment ~ ., data = train.tokens.df, method = "rpart", 
+                    #trControl = cv.cntrl, tuneLength = 7)
+
+
+```
+
+
+
+
